@@ -1,0 +1,97 @@
+variables: 
+  serviceConnectionDev: 'dev-germanywestcentral-sc'
+  serviceConnectionQa: 'qa-germanywestcentral-sc'
+  containerRegistryNameDev: 'acradosampledev'
+  containerRegistryNameQa: 'acradosampleqa'
+  imageBaseName: hello-world
+  imageNameDev: "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+  imageNameQa: "$(containerRegistryNameQa).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+
+trigger:
+  branches:
+    include:
+    - main
+
+stages:
+- stage: Build
+  pool:
+    vmImage: ubuntu-20.04
+
+  jobs:
+  - job: build
+    displayName: Build
+    steps:
+    - task: AzureCLI@2
+      displayName: Login to DEV ACR
+      name: setvar
+      inputs:
+        azureSubscription: dev-germanywestcentral-sc
+        scriptType: pscore
+        addSpnToEnvironment: true
+        scriptLocation: inlineScript
+        inlineScript: |
+          az acr login --name $(containerRegistryNameDev)
+
+          # store service principal id and key for later use
+          echo "##vso[task.setvariable variable=SpId;isoutput=true; issecret=true]$env:servicePrincipalId"
+          echo "##vso[task.setvariable variable=SpKey;isoutput=true; issecret=true]$env:servicePrincipalKey"
+
+    - task: AzureCLI@2
+      displayName: Build and Push to DEV ACR
+      inputs:
+        azureSubscription: dev-germanywestcentral-sc
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          docker build -t $(imageNameDev) .
+          docker push $(imageNameDev)
+
+- stage: DeployToDev
+  dependsOn: Build
+  condition: succeeded()
+  displayName: Deploy to Dev
+  pool:
+    vmImage: ubuntu-20.04
+
+  jobs:
+  - job: deploy
+
+    steps:
+    - pwsh: Write-Host "Here you can deploy the container to your favorite target. For example, AKS, ACI, ACA or Azure Web App for Containers."
+      displayName: Deploy container to target platform
+
+- stage: DeployToQa
+  dependsOn: 
+    - Build
+    - DeployToDev
+  condition: succeeded()
+  displayName: Deploy to Qa
+  pool:
+    vmImage: ubuntu-20.04
+
+  jobs:
+  - job: build
+    displayName: Build
+    variables:
+      - name: SpId
+        value: $[ stageDependencies.Build.build.outputs['setvar.SpId'] ]
+      - name: SpKey
+        value: $[ stageDependencies.Build.build.outputs['setvar.SpKey'] ]
+
+    steps:
+    - task: AzureCLI@2
+      displayName: Import Image
+      inputs:
+        azureSubscription: qa-germanywestcentral-sc
+        scriptType: pscore
+        scriptLocation: inlineScript         
+        inlineScript: |
+          $imageName = "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+          
+          az acr login --name $(containerRegistryNameQa)
+
+          az acr import `
+          --name $(containerRegistryNameQa) `
+          --username "$(SpId)" `
+          --password "$(SpKey)" `
+          --source $imageName
