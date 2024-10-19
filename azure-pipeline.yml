@@ -92,4 +92,6 @@ stages:
           az acr import \
           --name $(containerRegistryNameImportDev) \
           --source $sourceImage \
-          --image $destinationImage
+          --image $destinationImage \
+          --username $(acrUsernameDev) \
+          --password $(acrPasswordDev)
