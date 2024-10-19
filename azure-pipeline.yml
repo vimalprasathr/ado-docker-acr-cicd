@@ -30,7 +30,7 @@ stages:
       displayName: Login to DEV ACR using Admin Credentials
       inputs:
         connectedServiceNameARM: $(serviceConnectionDev)
-        scriptType: pscore
+        scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
           az acr login --name $(containerRegistryNameDev) --username $(acrUsernameDev) --password $(acrPasswordDev)
@@ -39,7 +39,7 @@ stages:
       displayName: Build and Push to DEV ACR
       inputs:
         connectedServiceNameARM: $(serviceConnectionDev)
-        scriptType: pscore
+        scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
           docker build -t $(imageNameDev) .
@@ -55,7 +55,7 @@ stages:
   jobs:
   - job: deploy
     steps:
-    - pwsh: Write-Host "Here you can deploy the container to your favorite target. For example, AKS, ACI, ACA, or Azure Web App for Containers."
+    - script: echo "Here you can deploy the container to your favorite target. For example, AKS, ACI, ACA, or Azure Web App for Containers."
       displayName: Deploy container to target platform
 
 - stage: ImportToDev
@@ -73,7 +73,7 @@ stages:
       displayName: Login to Import ACR using Admin Credentials
       inputs:
         connectedServiceNameARM: $(serviceConnectionDev)
-        scriptType: pscore
+        scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
           az acr login --name $(containerRegistryNameImportDev) --username $(acrUsernameImportDev) --password $(acrPasswordImportDev)
@@ -82,13 +82,13 @@ stages:
       displayName: Import Image to another DEV ACR
       inputs:
         connectedServiceNameARM: $(serviceConnectionDev)
-        scriptType: pscore
+        scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
-          $sourceImage = "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
-          $destinationImage = "$(containerRegistryNameImportDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+          sourceImage="$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+          destinationImage="$(containerRegistryNameImportDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
           
-          az acr import `
-          --name $(containerRegistryNameImportDev) `
-          --source $sourceImage `
+          az acr import \
+          --name $(containerRegistryNameImportDev) \
+          --source $sourceImage \
           --image $destinationImage
