@@ -1,5 +1,5 @@
 variables: 
-  serviceConnectionDev: 'dev-germanywestcentral-sc'  # Azure RM service connection name
+  serviceConnectionDev: 'dev-germanywestcentral-sc-arm'  # Azure RM service connection name
   containerRegistryNameDev: 'acradosampledev'
   containerRegistryNameImportDev: 'acrimportdev'  # New variable for the destination ACR in DEV
   imageBaseName: hello-world
