@@ -1,11 +1,10 @@
 variables: 
   serviceConnectionDev: 'dev-germanywestcentral-sc'
-  serviceConnectionQa: 'qa-germanywestcentral-sc'
   containerRegistryNameDev: 'acradosampledev'
-  containerRegistryNameQa: 'acradosampleqa'
+  containerRegistryNameImportDev: 'acrimportdev'  # New variable for the destination ACR in DEV
   imageBaseName: hello-world
   imageNameDev: "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
-  imageNameQa: "$(containerRegistryNameQa).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+  imageNameImportDev: "$(containerRegistryNameImportDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
 
 trigger:
   branches:
@@ -23,23 +22,18 @@ stages:
     steps:
     - task: AzureCLI@2
       displayName: Login to DEV ACR
-      name: setvar
       inputs:
-        azureSubscription: dev-germanywestcentral-sc
+        azureSubscription: $(serviceConnectionDev)
         scriptType: pscore
         addSpnToEnvironment: true
         scriptLocation: inlineScript
         inlineScript: |
           az acr login --name $(containerRegistryNameDev)
 
-          # store service principal id and key for later use
-          echo "##vso[task.setvariable variable=SpId;isoutput=true; issecret=true]$env:servicePrincipalId"
-          echo "##vso[task.setvariable variable=SpKey;isoutput=true; issecret=true]$env:servicePrincipalKey"
-
     - task: AzureCLI@2
       displayName: Build and Push to DEV ACR
       inputs:
-        azureSubscription: dev-germanywestcentral-sc
+        azureSubscription: $(serviceConnectionDev)
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
@@ -60,38 +54,32 @@ stages:
     - pwsh: Write-Host "Here you can deploy the container to your favorite target. For example, AKS, ACI, ACA or Azure Web App for Containers."
       displayName: Deploy container to target platform
 
-- stage: DeployToQa
-  dependsOn: 
-    - Build
-    - DeployToDev
+- stage: ImportToDev
+  dependsOn: Build
   condition: succeeded()
-  displayName: Deploy to Qa
+  displayName: Import Image to another DEV ACR
   pool:
     vmImage: ubuntu-20.04
 
   jobs:
-  - job: build
-    displayName: Build
-    variables:
-      - name: SpId
-        value: $[ stageDependencies.Build.build.outputs['setvar.SpId'] ]
-      - name: SpKey
-        value: $[ stageDependencies.Build.build.outputs['setvar.SpKey'] ]
-
+  - job: importToDevAcr
+    displayName: Import Image to Import ACR in DEV
     steps:
     - task: AzureCLI@2
-      displayName: Import Image
+      displayName: Import Image to another DEV ACR
       inputs:
-        azureSubscription: qa-germanywestcentral-sc
+        azureSubscription: $(serviceConnectionDev)
         scriptType: pscore
-        scriptLocation: inlineScript         
+        scriptLocation: inlineScript
         inlineScript: |
-          $imageName = "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+          $sourceImage = "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+          $destinationImage = "$(containerRegistryNameImportDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
           
-          az acr login --name $(containerRegistryNameQa)
+          # Log in to Import ACR in DEV
+          az acr login --name $(containerRegistryNameImportDev)
 
+          # Import the image from DEV ACR to another ACR in DEV
           az acr import `
-          --name $(containerRegistryNameQa) `
-          --username "$(SpId)" `
-          --password "$(SpKey)" `
-          --source $imageName
+          --name $(containerRegistryNameImportDev) `
+          --source $sourceImage `
+          --image $destinationImage
