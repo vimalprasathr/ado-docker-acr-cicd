@@ -1,6 +1,6 @@
 variables: 
-  serviceConnectionDev: 'dev-germanywestcentral-sc-arm'  # Azure RM service connection name
-  serviceConnectionDes: 'dev-des-sc-arm'  # Azure RM service connection name
+  serviceConnectionDev: 'dev-germanywestcentral-sc-arm'  # Azure RM service connection name for Build and Deploy
+  serviceConnectionDes: 'dev-des-sc-arm'  # Azure RM service connection name for Import
   containerRegistryNameDev: 'acradosampledev'
   containerRegistryNameImportDev: 'acrimportdev'  # New variable for the destination ACR in DEV
   imageBaseName: hello-world
@@ -73,7 +73,7 @@ stages:
     - task: AzureCLI@2
       displayName: Login to Import ACR using Admin Credentials
       inputs:
-        connectedServiceNameARM: $(dev-des-sc-arm)
+        connectedServiceNameARM: $(serviceConnectionDes)  # Use the second service connection here
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
@@ -82,7 +82,7 @@ stages:
     - task: AzureCLI@2
       displayName: Import Image to another DEV ACR
       inputs:
-        connectedServiceNameARM: $(dev-des-sc-arm)
+        connectedServiceNameARM: $(serviceConnectionDes)  # Use the second service connection here
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
