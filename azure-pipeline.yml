@@ -5,6 +5,10 @@ variables:
   imageBaseName: hello-world
   imageNameDev: "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
   imageNameImportDev: "$(containerRegistryNameImportDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
+  acrUsernameDev: $(ACR_DEV_USERNAME)  # Add these as secret variables in your pipeline
+  acrPasswordDev: $(ACR_DEV_PASSWORD)  # Secret variable for ACR password
+  acrUsernameImportDev: $(ACR_IMPORT_USERNAME)  # Username for the import ACR
+  acrPasswordImportDev: $(ACR_IMPORT_PASSWORD)  # Password for the import ACR
 
 trigger:
   branches:
@@ -21,19 +25,18 @@ stages:
     displayName: Build
     steps:
     - task: AzureCLI@2
-      displayName: Login to DEV ACR
+      displayName: Login to DEV ACR using Admin Credentials
       inputs:
-        connectedServiceNameARM: $(serviceConnectionDev)  # Corrected input key to connectedServiceNameARM
+        connectedServiceNameARM: $(serviceConnectionDev)
         scriptType: pscore
-        addSpnToEnvironment: true
         scriptLocation: inlineScript
         inlineScript: |
-          az acr login --name $(containerRegistryNameDev)
+          az acr login --name $(containerRegistryNameDev) --username $(acrUsernameDev) --password $(acrPasswordDev)
 
     - task: AzureCLI@2
       displayName: Build and Push to DEV ACR
       inputs:
-        connectedServiceNameARM: $(serviceConnectionDev)  # Corrected input key to connectedServiceNameARM
+        connectedServiceNameARM: $(serviceConnectionDev)
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
@@ -49,9 +52,8 @@ stages:
 
   jobs:
   - job: deploy
-
     steps:
-    - pwsh: Write-Host "Here you can deploy the container to your favorite target. For example, AKS, ACI, ACA or Azure Web App for Containers."
+    - pwsh: Write-Host "Here you can deploy the container to your favorite target. For example, AKS, ACI, ACA, or Azure Web App for Containers."
       displayName: Deploy container to target platform
 
 - stage: ImportToDev
@@ -66,19 +68,24 @@ stages:
     displayName: Import Image to Import ACR in DEV
     steps:
     - task: AzureCLI@2
+      displayName: Login to Import ACR using Admin Credentials
+      inputs:
+        connectedServiceNameARM: $(serviceConnectionDev)
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          az acr login --name $(containerRegistryNameImportDev) --username $(acrUsernameImportDev) --password $(acrPasswordImportDev)
+
+    - task: AzureCLI@2
       displayName: Import Image to another DEV ACR
       inputs:
-        connectedServiceNameARM: $(serviceConnectionDev)  # Corrected input key to connectedServiceNameARM
+        connectedServiceNameARM: $(serviceConnectionDev)
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
           $sourceImage = "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
           $destinationImage = "$(containerRegistryNameImportDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
           
-          # Log in to Import ACR in DEV
-          az acr login --name $(containerRegistryNameImportDev)
-
-          # Import the image from DEV ACR to another ACR in DEV
           az acr import `
           --name $(containerRegistryNameImportDev) `
           --source $sourceImage `
