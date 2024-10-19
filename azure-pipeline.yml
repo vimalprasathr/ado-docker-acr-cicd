@@ -1,5 +1,5 @@
 variables: 
-  serviceConnectionDev: 'dev-germanywestcentral-sc'
+  serviceConnectionDev: 'dev-germanywestcentral-sc'  # Azure RM service connection name
   containerRegistryNameDev: 'acradosampledev'
   containerRegistryNameImportDev: 'acrimportdev'  # New variable for the destination ACR in DEV
   imageBaseName: hello-world
@@ -23,7 +23,7 @@ stages:
     - task: AzureCLI@2
       displayName: Login to DEV ACR
       inputs:
-        azureSubscription: $(serviceConnectionDev)
+        connectedServiceName: $(serviceConnectionDev)  # Corrected key name for service connection
         scriptType: pscore
         addSpnToEnvironment: true
         scriptLocation: inlineScript
@@ -33,7 +33,7 @@ stages:
     - task: AzureCLI@2
       displayName: Build and Push to DEV ACR
       inputs:
-        azureSubscription: $(serviceConnectionDev)
+        connectedServiceName: $(serviceConnectionDev)  # Corrected key name for service connection
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
@@ -68,7 +68,7 @@ stages:
     - task: AzureCLI@2
       displayName: Import Image to another DEV ACR
       inputs:
-        azureSubscription: $(serviceConnectionDev)
+        connectedServiceName: $(serviceConnectionDev)  # Corrected key name for service connection
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
