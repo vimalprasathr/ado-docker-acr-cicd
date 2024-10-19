@@ -33,7 +33,7 @@ stages:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          az acr login --name $(containerRegistryNameDev) --username $env:ACR_DEV_USERNAME --password $env:ACR_DEV_PASSWORD
+          az acr login --name $(containerRegistryNameDev) --username $(acrUsernameDev) --password $(acrPasswordDev)
 
     - task: AzureCLI@2
       displayName: Build and Push to DEV ACR
@@ -76,7 +76,7 @@ stages:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          az acr login --name $(containerRegistryNameImportDev) --username $env:ACR_IMPORT_USERNAME --password $env:ACR_IMPORT_PASSWORD
+          az acr login --name $(containerRegistryNameImportDev) --username $(acrUsernameImportDev) --password $(acrPasswordImportDev)
 
     - task: AzureCLI@2
       displayName: Import Image to another DEV ACR
