@@ -5,10 +5,12 @@ variables:
   imageBaseName: hello-world
   imageNameDev: "$(containerRegistryNameDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
   imageNameImportDev: "$(containerRegistryNameImportDev).azurecr.io/$(imageBaseName):$(Build.BuildId)"
-  acrUsernameDev: $(ACR_DEV_USERNAME)  # Add these as secret variables in your pipeline
-  acrPasswordDev: $(ACR_DEV_PASSWORD)  # Secret variable for ACR password
-  acrUsernameImportDev: $(ACR_IMPORT_USERNAME)  # Username for the import ACR
-  acrPasswordImportDev: $(ACR_IMPORT_PASSWORD)  # Password for the import ACR
+
+  # These should be stored as secret variables in Azure DevOps pipeline
+  acrUsernameDev: $(ACR_DEV_USERNAME)   # Dev ACR admin username
+  acrPasswordDev: $(ACR_DEV_PASSWORD)   # Dev ACR admin password
+  acrUsernameImportDev: $(ACR_IMPORT_USERNAME)  # Import ACR admin username
+  acrPasswordImportDev: $(ACR_IMPORT_PASSWORD)  # Import ACR admin password
 
 trigger:
   branches:
@@ -31,7 +33,7 @@ stages:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          az acr login --name $(containerRegistryNameDev) --username $(acrUsernameDev) --password $(acrPasswordDev)
+          az acr login --name $(containerRegistryNameDev) --username $env:ACR_DEV_USERNAME --password $env:ACR_DEV_PASSWORD
 
     - task: AzureCLI@2
       displayName: Build and Push to DEV ACR
@@ -74,7 +76,7 @@ stages:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          az acr login --name $(containerRegistryNameImportDev) --username $(acrUsernameImportDev) --password $(acrPasswordImportDev)
+          az acr login --name $(containerRegistryNameImportDev) --username $env:ACR_IMPORT_USERNAME --password $env:ACR_IMPORT_PASSWORD
 
     - task: AzureCLI@2
       displayName: Import Image to another DEV ACR
